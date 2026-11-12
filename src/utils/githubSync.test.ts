@@ -5,6 +5,7 @@ import {
   buildPhotobooksConfigPayload,
   computeCanvasDrawSpecs,
   parseRemotePhotobooksPayload,
+  detectDefaultGitHubRepo,
 } from './githubSync.ts';
 import { CURATED_PHOTOBOOKS, MASTER_INTRO_PHOTO } from '../data/curatedPhotobooks.ts';
 
@@ -85,3 +86,9 @@ test('parseRemotePhotobooksPayload: handles invalid JSON gracefully', () => {
   assert.equal(parseRemotePhotobooksPayload('invalid-json'), null);
   assert.equal(parseRemotePhotobooksPayload({}), null);
 });
+
+test('detectDefaultGitHubRepo: defaults to jwygallery/photo in non-browser or fallback env', () => {
+  const repo = detectDefaultGitHubRepo();
+  assert.equal(repo, 'jwygallery/photo');
+});
+

@@ -21,6 +21,7 @@ import {
 import {
   buildPhotobooksConfigPayload,
   parseGitHubRepoString,
+  detectDefaultGitHubRepo,
 } from '../utils/githubSync.ts';
 import {
   formatArchivalCatalogDate,
@@ -85,10 +86,19 @@ export default function AdminConsole({
     }
   });
   const [githubRepo, setGithubRepo] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('jwy_gh_repo');
+      if (
+        saved &&
+        saved !== 'iamcoolkorean/jwy-photobook' &&
+        saved !== 'iamcoolkorean/jwyphotobook'
+      ) {
+        return saved;
+      }
+    } catch (_) {}
     return (
       (import.meta as any).env?.VITE_GITHUB_REPO ||
-      localStorage.getItem('jwy_gh_repo') ||
-      'iamcoolkorean/jwy-photobook'
+      detectDefaultGitHubRepo()
     );
   });
   const [githubBranch, setGithubBranch] = useState<string>(() => {
@@ -603,7 +613,7 @@ export default function AdminConsole({
     }
     const repoInfo = parseGitHubRepoString(githubRepo, githubBranch);
     if (!repoInfo) {
-      setGithubStatus('Invalid repo format. Please use "owner/repo" (e.g., iamcoolkorean/jwy-photobook).');
+      setGithubStatus('Invalid repo format. Please use "owner/repo" (e.g., jwygallery/photo).');
       return;
     }
 
@@ -1621,7 +1631,7 @@ export default function AdminConsole({
                     </label>
                     <input
                       type="text"
-                      placeholder="iamcoolkorean/jwy-photobook"
+                      placeholder="jwygallery/photo"
                       value={githubRepo}
                       onChange={(e) => setGithubRepo(e.target.value)}
                       className="w-full bg-black border border-neutral-700 px-3 py-2 text-white focus:outline-hidden focus:border-white"

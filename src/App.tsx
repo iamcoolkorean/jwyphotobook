@@ -20,7 +20,7 @@ import InformationView, {
 import AdminConsole from './components/AdminConsole.tsx';
 import AdminPasswordModal from './components/AdminPasswordModal.tsx';
 import Footer from './components/Footer.tsx';
-import { parseGitHubRepoString } from './utils/githubSync.ts';
+import { parseGitHubRepoString, detectDefaultGitHubRepo } from './utils/githubSync.ts';
 import { fetchRemotePhotobooksConfig } from './services/githubService.ts';
 
 export default function App() {
@@ -114,10 +114,21 @@ export default function App() {
 
     async function loadRemoteArchive() {
       try {
-        const repoStr =
+        let repoStr =
           localStorage.getItem('jwy_gh_repo') ||
-          (import.meta as any).env?.VITE_GITHUB_REPO ||
-          'iamcoolkorean/jwy-photobook';
+          detectDefaultGitHubRepo();
+
+        // Self-heal: correct legacy repo string if present in browser localStorage
+        if (
+          repoStr === 'iamcoolkorean/jwy-photobook' ||
+          repoStr === 'iamcoolkorean/jwyphotobook'
+        ) {
+          repoStr = 'jwygallery/photo';
+          try {
+            localStorage.setItem('jwy_gh_repo', repoStr);
+          } catch (_) {}
+        }
+
         const branchStr =
           localStorage.getItem('jwy_gh_branch') ||
           (import.meta as any).env?.VITE_GITHUB_BRANCH ||

@@ -25,6 +25,28 @@ export function parseGitHubRepoString(input: string, defaultBranch: string = 'ma
 }
 
 /**
+ * Automatically detects the GitHub repository (owner/repo) based on GitHub Pages URL,
+ * environment variables, or fallback to the correct repository name.
+ */
+export function detectDefaultGitHubRepo(): string {
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    const pathname = window.location.pathname;
+    if (hostname.endsWith('.github.io')) {
+      const owner = hostname.replace('.github.io', '');
+      const segments = pathname.split('/').filter(Boolean);
+      const repo = segments[0] || 'photo';
+      return `${owner}/${repo}`;
+    }
+  }
+  return (
+    (import.meta as any).env?.VITE_GITHUB_REPO ||
+    'jwygallery/photo'
+  );
+}
+
+
+/**
  * Generates the clean JSON payload of photobooks, catalog description,
  * information page sections, and site configuration to be committed to GitHub repository.
  */
