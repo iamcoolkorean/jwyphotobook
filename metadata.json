@@ -1,0 +1,6 @@
+{
+  "name": "Space Archive - Minimalist Photo Book",
+  "description": "A refined, minimalist online photo book and gallery with Space Archive white-matting presentation and Google Drive integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

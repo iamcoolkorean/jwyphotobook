@@ -1,0 +1,177 @@
+import { PhotoBook } from '../types/photobook.ts';
+
+export interface GitHubRepoDetails {
+  owner: string;
+  repo: string;
+  branch: string;
+}
+
+/**
+ * Parses user input for GitHub repository into owner and repository name.
+ * Accepts "owner/repo" or "https://github.com/owner/repo" format.
+ */
+export function parseGitHubRepoString(input: string, defaultBranch: string = 'main'): GitHubRepoDetails | null {
+  if (!input || typeof input !== 'string') return null;
+  const cleaned = input.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+  const parts = cleaned.split('/');
+  if (parts.length >= 2 && parts[0] && parts[1]) {
+    return {
+      owner: parts[0],
+      repo: parts[1],
+      branch: defaultBranch,
+    };
+  }
+  return null;
+}
+
+/**
+ * Generates the clean JSON payload of photobooks, catalog description,
+ * information page sections, and site configuration to be committed to GitHub repository.
+ */
+export function buildPhotobooksConfigPayload(
+  books: PhotoBook[],
+  mainBannerPhotoId: string,
+  updatedBy: string = 'JWY',
+  catalogDescription: string = 'A meditative sequence of black and white spatial inquiries.',
+  informationConfig?: any
+): string {
+  const data = {
+    appName: 'JWY PHOTO BOOK',
+    organizer: 'JWY',
+    location: 'SEOUL, KOREA',
+    updatedAt: new Date().toISOString(),
+    updatedBy,
+    mainBannerPhotoId,
+    catalogDescription,
+    informationConfig: informationConfig || null,
+    monographsCount: books.length,
+    books: books.map((b, idx) => ({
+      id: b.id,
+      index: String(idx + 1).padStart(2, '0'),
+      title: b.title,
+      subtitle: b.subtitle,
+      edition: b.edition,
+      year: b.year,
+      curatorNote: b.curatorNote,
+      coverImageId: b.coverImage.id,
+      photosCount: b.photos.length,
+      photos: b.photos.map((p) => ({
+        id: p.id,
+        title: p.title,
+        subtitle: p.subtitle || '',
+        imageUrl: p.imageUrl,
+        aspectRatioLabel: p.aspectRatioLabel || '1:1',
+        year: p.year || b.year,
+        location: p.location || 'SEOUL, KOREA',
+        filmStockOrCamera: p.filmStockOrCamera || '',
+        notes: p.notes || '',
+        fileSize: p.fileSize || '',
+      })),
+    })),
+  };
+
+  return JSON.stringify(data, null, 2);
+}
+
+/**
+ * Mathematical placement specs for rendering an image centered on a 1:1 square canvas.
+ */
+export function computeCanvasDrawSpecs(
+  naturalWidth: number,
+  naturalHeight: number,
+  canvasSize: number = 2000,
+  paddingRatio: number = 0.025
+) {
+  const usableSize = canvasSize * (1 - paddingRatio * 2);
+  const aspect = naturalWidth / naturalHeight;
+
+  let dw: number;
+  let dh: number;
+
+  if (aspect >= 1) {
+    dw = usableSize;
+    dh = usableSize / aspect;
+  } else {
+    dh = usableSize;
+    dw = usableSize * aspect;
+  }
+
+  const dx = (canvasSize - dw) / 2;
+  const dy = (canvasSize - dh) / 2;
+
+  return {
+    canvasSize,
+    dx: Math.round(dx),
+    dy: Math.round(dy),
+    dw: Math.round(dw),
+    dh: Math.round(dh),
+  };
+}
+
+export interface ParsedRemoteConfig {
+  books: PhotoBook[];
+  mainBannerPhotoId?: string;
+  catalogDescription?: string;
+  informationConfig?: any;
+  updatedAt?: string;
+}
+
+/**
+ * Validates and parses remote JSON payload committed to GitHub (data/photobooks.json),
+ * restoring strongly-typed PhotoBook instances with covers and individual plates.
+ */
+export function parseRemotePhotobooksPayload(jsonInput: string | any): ParsedRemoteConfig | null {
+  try {
+    const data = typeof jsonInput === 'string' ? JSON.parse(jsonInput) : jsonInput;
+    if (!data || !Array.isArray(data.books)) return null;
+
+    const books: PhotoBook[] = data.books.map((b: any, bIdx: number) => {
+      const photos = Array.isArray(b.photos)
+        ? b.photos.map((p: any, pIdx: number) => ({
+            id: p.id || `remote-photo-${bIdx}-${pIdx}`,
+            title: p.title || `PLATE ${String(pIdx + 1).padStart(2, '0')}`,
+            subtitle: p.subtitle || '',
+            imageUrl: p.imageUrl,
+            aspectRatioLabel: p.aspectRatioLabel || '1:1',
+            year: p.year || b.year || '2026',
+            location: p.location || 'SEOUL, KOREA',
+            filmStockOrCamera: p.filmStockOrCamera || '',
+            notes: p.notes || '',
+            fileSize: p.fileSize || '',
+          }))
+        : [];
+
+      const coverImage = photos.find((p: any) => p.id === b.coverImageId) || photos[0] || {
+        id: `cover-${b.id || bIdx}`,
+        title: b.title || 'Monograph Cover',
+        subtitle: b.subtitle || '',
+        imageUrl: '',
+        aspectRatioLabel: '1:1',
+        year: b.year || '2026',
+      };
+
+      return {
+        id: b.id || `book-${bIdx + 1}`,
+        title: b.title || 'Untitled Monograph',
+        subtitle: b.subtitle || '',
+        edition: b.edition || 'ARCHIVE MONOGRAPH',
+        year: b.year || '2026',
+        curatorNote: b.curatorNote || b.subtitle || '',
+        coverImage,
+        photos,
+      };
+    });
+
+    return {
+      books,
+      mainBannerPhotoId: data.mainBannerPhotoId,
+      catalogDescription: data.catalogDescription,
+      informationConfig: data.informationConfig,
+      updatedAt: data.updatedAt,
+    };
+  } catch (err) {
+    console.warn('Failed to parse remote photobooks payload:', err);
+    return null;
+  }
+}
+
