@@ -2,23 +2,23 @@
   "appName": "JWY PHOTO BOOK",
   "organizer": "JWY",
   "location": "SEOUL, KOREA",
-  "updatedAt": "2026-11-12T07:55:08.165Z",
+  "updatedAt": "2026-11-12T13:33:39.809Z",
   "updatedBy": "iamcoolkorean@gmail.com",
   "mainBannerPhotoId": "master-intro-photo",
   "catalogDescription": "“To take photographs means to put one's head, one's eye and one's heart on the same axis.“",
   "informationConfig": {
     "kicker": "ABOUT",
-    "heading": "JWY PHOTO BOOK",
+    "heading": "PHOTO BOOK",
     "sections": [
       {
         "id": "sec-01",
-        "title": "01. Archival Mission",
-        "content": "JWY PHOTO BOOK is a personal digital monograph archive founded in Seoul, Korea."
+        "title": "01. Origin",
+        "content": "JWY PHOTO BOOK is a personal monograph archive founded in Seoul, Korea."
       },
       {
-        "id": "sec-03",
-        "title": "02. Aesthetic Discipline",
-        "content": "Form follows function."
+        "id": "sec-1794490135461",
+        "title": "02. Contact",
+        "content": "…"
       }
     ]
   },
