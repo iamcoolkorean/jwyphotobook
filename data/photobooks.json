@@ -1,0 +1,27 @@
+{
+  "appName": "JWY PHOTO BOOK",
+  "organizer": "JWY",
+  "location": "SEOUL, KOREA",
+  "updatedAt": "2026-11-12T06:05:17.868Z",
+  "updatedBy": "iamcoolkorean@gmail.com",
+  "mainBannerPhotoId": "master-intro-photo",
+  "catalogDescription": "A meditative sequence of black and white spatial inquiries. ",
+  "informationConfig": {
+    "kicker": "ABOUT",
+    "heading": "JWY PHOTO BOOK",
+    "sections": [
+      {
+        "id": "sec-01",
+        "title": "01. Archival Mission",
+        "content": "JWY PHOTO BOOK is a personal digital monograph archive founded in Seoul, Korea."
+      },
+      {
+        "id": "sec-03",
+        "title": "02. Aesthetic Discipline",
+        "content": "Form follows function."
+      }
+    ]
+  },
+  "monographsCount": 0,
+  "books": []
+}
