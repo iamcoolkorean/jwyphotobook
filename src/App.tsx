@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from 'firebase/auth';
 import { PhotoBook, PhotoItem } from './types/photobook.ts';
 import { CURATED_PHOTOBOOKS, MASTER_INTRO_PHOTO } from './data/curatedPhotobooks.ts';
@@ -23,18 +23,45 @@ import Footer from './components/Footer.tsx';
 import { parseGitHubRepoString, detectDefaultGitHubRepo } from './utils/githubSync.ts';
 import { fetchRemotePhotobooksConfig } from './services/githubService.ts';
 
-export default function App() {
-  // Navigation View: 'intro' | 'list' | 'info' | 'detail' | 'admin'
-  const [viewMode, setViewMode] = useState<'intro' | 'list' | 'info' | 'detail' | 'admin'>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('autostart') === '1') {
-        return 'list';
+type ViewMode = 'intro' | 'list' | 'info' | 'detail' | 'admin';
+
+interface ParsedHashRoute {
+  viewMode: ViewMode;
+  bookId?: string;
+}
+
+function parseHashRoute(rawHash: string): ParsedHashRoute {
+  const hash = (rawHash || '').trim();
+  if (!hash || hash === '#' || hash === '#/') {
+    return { viewMode: 'intro' };
+  }
+  if (hash === '#/list' || hash.startsWith('#/list?')) {
+    return { viewMode: 'list' };
+  }
+  if (hash === '#/info' || hash.startsWith('#/info?')) {
+    return { viewMode: 'info' };
+  }
+  if (hash === '#/admin' || hash.startsWith('#/admin?')) {
+    return { viewMode: 'admin' };
+  }
+  if (hash.startsWith('#/book/')) {
+    const rawId = hash.slice('#/book/'.length).split('?')[0].trim();
+    try {
+      const bookId = decodeURIComponent(rawId);
+      if (bookId) {
+        return { viewMode: 'detail', bookId };
+      }
+    } catch {
+      if (rawId) {
+        return { viewMode: 'detail', bookId: rawId };
       }
     }
-    return 'intro';
-  });
+    return { viewMode: 'list' };
+  }
+  return { viewMode: 'intro' };
+}
 
+export default function App() {
   // Photobooks Catalogue state (purged of legacy sample monographs)
   const [books, setBooks] = useState<PhotoBook[]>(() => {
     try {
@@ -52,6 +79,22 @@ export default function App() {
       console.warn('Failed to parse cached photobooks:', e);
     }
     return CURATED_PHOTOBOOKS;
+  });
+
+  // Navigation View: 'intro' | 'list' | 'info' | 'detail' | 'admin'
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const currentHash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      if (
+        params.get('autostart') === '1' &&
+        (!currentHash || currentHash === '#' || currentHash === '#/')
+      ) {
+        return 'list';
+      }
+      return parseHashRoute(currentHash).viewMode;
+    }
+    return 'intro';
   });
 
   // Archive loading state for initial fetch
@@ -85,7 +128,113 @@ export default function App() {
     return DEFAULT_INFORMATION_CONFIG;
   });
 
-  const [selectedBook, setSelectedBook] = useState<PhotoBook | null>(null);
+  const [selectedBook, setSelectedBook] = useState<PhotoBook | null>(() => {
+    if (typeof window !== 'undefined') {
+      const route = parseHashRoute(window.location.hash);
+      if (route.viewMode === 'detail' && route.bookId) {
+        return books.find((b) => b.id === route.bookId) || null;
+      }
+    }
+    return null;
+  });
+
+  const booksRef = useRef<PhotoBook[]>(books);
+  booksRef.current = books;
+
+  const isLoadingArchiveRef = useRef<boolean>(isLoadingArchive);
+  isLoadingArchiveRef.current = isLoadingArchive;
+
+  // Navigate and synchronize state -> window.location.hash
+  const navigateTo = useCallback((mode: ViewMode, book?: PhotoBook | null) => {
+    setSelectedBook(book ?? null);
+    setViewMode(mode);
+
+    if (typeof window !== 'undefined') {
+      let targetHash = '#/';
+      if (mode === 'list') targetHash = '#/list';
+      else if (mode === 'info') targetHash = '#/info';
+      else if (mode === 'admin') targetHash = '#/admin';
+      else if (mode === 'detail' && book) {
+        targetHash = `#/book/${encodeURIComponent(book.id)}`;
+      }
+
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
+  // Synchronize URL hash <-> viewMode & selectedBook (supports browser Back/Forward & direct URL entry)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const currentHash = window.location.hash;
+    const params = new URLSearchParams(window.location.search);
+    if (
+      params.get('autostart') === '1' &&
+      (!currentHash || currentHash === '#' || currentHash === '#/')
+    ) {
+      window.location.hash = '#/list';
+      setViewMode('list');
+      setSelectedBook(null);
+    }
+
+    const handleHashChange = () => {
+      const route = parseHashRoute(window.location.hash);
+      if (route.viewMode === 'detail' && route.bookId) {
+        const matched = booksRef.current.find((b) => b.id === route.bookId);
+        if (matched) {
+          setSelectedBook(matched);
+          setViewMode('detail');
+        } else if (isLoadingArchiveRef.current) {
+          setSelectedBook(null);
+          setViewMode('detail');
+        } else {
+          setSelectedBook(null);
+          setViewMode('list');
+          if (window.location.hash !== '#/list') {
+            window.location.hash = '#/list';
+          }
+        }
+      } else {
+        setSelectedBook(null);
+        setViewMode(route.viewMode);
+      }
+      window.scrollTo(0, 0);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  // Resolve direct link (#/book/<book.id>) once asynchronous GitHub archive loading completes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const route = parseHashRoute(window.location.hash);
+    if (route.viewMode === 'detail' && route.bookId) {
+      const matched = books.find((b) => b.id === route.bookId);
+      if (matched) {
+        setSelectedBook(matched);
+        setViewMode('detail');
+      } else if (!isLoadingArchive) {
+        setSelectedBook(null);
+        setViewMode('list');
+        if (window.location.hash !== '#/list') {
+          window.location.hash = '#/list';
+        }
+      }
+    }
+  }, [books, isLoadingArchive]);
+
+  // Reset scroll position to top on every view or selected book transition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
+  }, [viewMode, selectedBook?.id]);
 
   // Auth state
   const [user, setUser] = useState<User | null>(null);
@@ -160,8 +309,25 @@ export default function App() {
               console.warn(e);
             }
 
-            // Sync catalog description
-            if (remoteData.catalogDescription) {
+            if (typeof window !== 'undefined') {
+              const currentRoute = parseHashRoute(window.location.hash);
+              if (currentRoute.viewMode === 'detail' && currentRoute.bookId) {
+                const matched = cleanBooks.find((b: PhotoBook) => b.id === currentRoute.bookId);
+                if (matched) {
+                  setSelectedBook(matched);
+                  setViewMode('detail');
+                } else {
+                  setSelectedBook(null);
+                  setViewMode('list');
+                  if (window.location.hash !== '#/list') {
+                    window.location.hash = '#/list';
+                  }
+                }
+              }
+            }
+
+            // Sync catalog description (Collections Subtitle)
+            if (typeof remoteData.catalogDescription === 'string') {
               setCatalogDescription(remoteData.catalogDescription);
               try {
                 localStorage.setItem('jwy_catalog_desc', remoteData.catalogDescription);
@@ -257,7 +423,7 @@ export default function App() {
           return;
         }
         setUser(result.user);
-        setViewMode('admin');
+        navigateTo('admin');
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -273,7 +439,7 @@ export default function App() {
       await logout();
       setUser(null);
       if (viewMode === 'admin') {
-        setViewMode('list');
+        navigateTo('list');
       }
     } catch (err) {
       console.error('Logout error:', err);
@@ -295,7 +461,7 @@ export default function App() {
       {/* 1. INTRO SCREEN: Single grand representative photograph, clean of explanations */}
       {viewMode === 'intro' ? (
         <IntroScreen
-          onEnter={() => setViewMode('list')}
+          onEnter={() => navigateTo('list')}
           bannerPhoto={mainBannerPhoto}
         />
       ) : (
@@ -311,14 +477,13 @@ export default function App() {
                 : 'list'
             }
             onSelectView={(target) => {
-              setSelectedBook(null);
-              setViewMode(target);
+              navigateTo(target);
             }}
             user={user}
             onLogin={handleStartLogin}
             onLogout={handleLogout}
             isLoggingIn={isLoggingIn}
-            onReturnToIntro={() => setViewMode('intro')}
+            onReturnToIntro={() => navigateTo('intro')}
           />
 
           {/* Security / Auth Alert Notice */}
@@ -341,8 +506,7 @@ export default function App() {
               <PhotoBookDetail
                 book={books.find((b) => b.id === selectedBook.id) || selectedBook}
                 onBack={() => {
-                  setSelectedBook(null);
-                  setViewMode('list');
+                  navigateTo('list');
                 }}
               />
             )}
@@ -354,8 +518,7 @@ export default function App() {
                 catalogDescription={catalogDescription}
                 isLoading={isLoadingArchive}
                 onSelectBook={(book) => {
-                  setSelectedBook(book);
-                  setViewMode('detail');
+                  navigateTo('detail', book);
                 }}
               />
             )}
@@ -364,7 +527,7 @@ export default function App() {
             {viewMode === 'info' && (
               <InformationView
                 config={informationConfig}
-                onBackToCatalog={() => setViewMode('list')}
+                onBackToCatalog={() => navigateTo('list')}
               />
             )}
 
@@ -380,7 +543,7 @@ export default function App() {
                   onUpdateCatalogDescription={handleUpdateCatalogDescription}
                   informationConfig={informationConfig}
                   onUpdateInformationConfig={handleUpdateInformationConfig}
-                  onClose={() => setViewMode('list')}
+                  onClose={() => navigateTo('list')}
                 />
               ) : (
                 <div className="max-w-md mx-auto my-24 p-8 border border-white/20 bg-neutral-950 text-center font-mono text-xs space-y-4">

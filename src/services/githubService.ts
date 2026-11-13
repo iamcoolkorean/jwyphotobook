@@ -245,8 +245,15 @@ export async function fetchRemotePhotobooksConfig(
 
   // 1. Try public raw content (works without token for public repos and avoids GitHub API rate limits)
   try {
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/photobooks.json?t=${Date.now()}`;
-    const rawRes = await fetch(rawUrl, { cache: 'no-store' });
+    const nonce = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/photobooks.json?_t=${nonce}`;
+    const rawRes = await fetch(rawUrl, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
+    });
     if (rawRes.ok) {
       const json = await rawRes.json();
       const parsed = parseRemotePhotobooksPayload(json);
@@ -256,16 +263,18 @@ export async function fetchRemotePhotobooksConfig(
     // Continue to GitHub API fallback
   }
 
-  // 2. Fallback to GitHub API (supports private repos if token is provided)
+  // 2. Fallback to GitHub API (supports private repos if token is provided, always fresh from git tree)
   try {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github+json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
     };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/photobooks.json?ref=${branch}`;
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/photobooks.json?ref=${branch}&_t=${Date.now()}`;
     const apiRes = await fetch(apiUrl, { headers, cache: 'no-store' });
     if (apiRes.ok) {
       const data = await apiRes.json();

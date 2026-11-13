@@ -1294,7 +1294,7 @@ export default function AdminConsole({
                   </div>
 
                   <div>
-                    <label className="text-neutral-500 uppercase block mb-1">Monograph Title</label>
+                    <label className="text-neutral-500 uppercase block mb-1">Monograph Title (제목)</label>
                     <input
                       type="text"
                       value={selectedBookForEdit.title}
@@ -1305,14 +1305,27 @@ export default function AdminConsole({
 
                   <div>
                     <label className="text-neutral-500 uppercase block mb-1">
-                      Curator Note / Comment
+                      Monograph Subtitle (부제목)
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedBookForEdit.subtitle ?? ''}
+                      onChange={(e) => handleUpdateBookMetadata('subtitle', e.target.value)}
+                      placeholder="e.g., Jirisan Monograph Series / Spatial Inquiry"
+                      className="w-full bg-black border border-neutral-700 px-3 py-2 text-white focus:outline-hidden focus:border-white text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-neutral-500 uppercase block mb-1">
+                      Curator Note / Comment (코멘트)
                     </label>
                     <textarea
                       rows={5}
                       value={selectedBookForEdit.curatorNote ?? ''}
                       onChange={(e) => {
                         const val = e.target.value;
-                        handleUpdateBookMetadata({ curatorNote: val, subtitle: val });
+                        handleUpdateBookMetadata('curatorNote', val);
                       }}
                       placeholder="Enter monograph curator note or artistic comment..."
                       className="w-full bg-black border border-neutral-700 p-3 text-white focus:outline-hidden focus:border-white text-xs font-light"
@@ -1434,16 +1447,30 @@ export default function AdminConsole({
                               </div>
                             </div>
 
-                            <div>
-                              <label className="text-neutral-500 uppercase block mb-0.5 text-[10px]">
-                                Plate Title
-                              </label>
-                              <input
-                                type="text"
-                                value={photo.title}
-                                onChange={(e) => handleUpdatePhotoMetadata(photo.id, 'title', e.target.value)}
-                                className="w-full bg-black border border-neutral-700 px-2 py-1 text-white focus:outline-hidden focus:border-white text-xs"
-                              />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-neutral-500 uppercase block mb-0.5 text-[10px]">
+                                  Plate Title (제목)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={photo.title}
+                                  onChange={(e) => handleUpdatePhotoMetadata(photo.id, 'title', e.target.value)}
+                                  className="w-full bg-black border border-neutral-700 px-2 py-1 text-white focus:outline-hidden focus:border-white text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-neutral-500 uppercase block mb-0.5 text-[10px]">
+                                  Plate Subtitle / Series (부제목)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={photo.subtitle || ''}
+                                  onChange={(e) => handleUpdatePhotoMetadata(photo.id, 'subtitle', e.target.value)}
+                                  placeholder="e.g., #2 Series"
+                                  className="w-full bg-black border border-neutral-700 px-2 py-1 text-white focus:outline-hidden focus:border-white text-xs"
+                                />
+                              </div>
                             </div>
 
 

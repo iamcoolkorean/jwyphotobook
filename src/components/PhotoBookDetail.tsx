@@ -29,14 +29,19 @@ export default function PhotoBookDetail({ book, onBack }: PhotoBookDetailProps) 
           </button>
         </div>
 
-        {/* Monograph Title & Curator Note */}
+        {/* Monograph Title, Subtitle & Curator Note */}
         <header className="mb-20 space-y-4">
           <h1 className="text-3xl sm:text-5xl font-light tracking-tight text-white">
             {book.title}
           </h1>
-          {(book.curatorNote || book.subtitle) && (
+          {book.subtitle && book.subtitle.trim() !== (book.curatorNote || '').trim() && (
+            <p className="text-base sm:text-lg font-normal text-neutral-300 tracking-wide">
+              {book.subtitle}
+            </p>
+          )}
+          {book.curatorNote && (
             <p className="text-sm sm:text-base font-light text-neutral-400 leading-relaxed max-w-2xl whitespace-pre-line">
-              {book.curatorNote || book.subtitle}
+              {book.curatorNote}
             </p>
           )}
         </header>
@@ -61,12 +66,23 @@ export default function PhotoBookDetail({ book, onBack }: PhotoBookDetailProps) 
                 />
               </div>
 
-              {/* Plate Technical Provenance: Location and Camera/Apparatus */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/10 text-xs font-light tracking-tight text-neutral-400">
+              {/* Plate Technical Provenance: Title, Subtitle, Location and Camera/Apparatus */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-white/10 text-xs font-light tracking-tight text-neutral-400">
                 <div>
                   <span className="text-neutral-500 block uppercase text-[10px] tracking-tight">TITLE</span>
                   <span className="text-white font-normal">{photo.title}</span>
                 </div>
+                {photo.subtitle ? (
+                  <div>
+                    <span className="text-neutral-500 block uppercase text-[10px] tracking-tight">SERIES / SUBTITLE</span>
+                    <span className="text-neutral-300">{photo.subtitle}</span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-neutral-500 block uppercase text-[10px] tracking-tight">INDEX</span>
+                    <span className="text-neutral-300">PLATE #{String(pIdx + 1).padStart(2, '0')}</span>
+                  </div>
+                )}
                 <div>
                   <span className="text-neutral-500 block uppercase text-[10px] tracking-tight">LOCATION</span>
                   <span className="text-neutral-300">{photo.location || 'SEOUL, KOREA'}</span>

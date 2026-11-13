@@ -178,7 +178,7 @@ export function parseRemotePhotobooksPayload(jsonInput: string | any): ParsedRem
         subtitle: b.subtitle || '',
         edition: b.edition || 'ARCHIVE MONOGRAPH',
         year: b.year || '2026',
-        curatorNote: b.curatorNote || b.subtitle || '',
+        curatorNote: b.curatorNote || '',
         coverImage,
         photos,
       };

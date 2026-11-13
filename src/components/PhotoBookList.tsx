@@ -83,16 +83,28 @@ export default function PhotoBookList({
                 />
               </div>
 
-              {/* Directly beneath photo: Only Title and Comment */}
+              {/* Directly beneath photo: Title, Subtitle, and Comment */}
               <div className="mt-8 pt-4 border-t border-white/10 space-y-2">
                 <h3 className="text-2xl sm:text-3xl font-light tracking-tight text-white group-hover:text-neutral-300 transition-colors">
                   {book.title}
-              </h3>
+                </h3>
 
-              <p className="text-neutral-400 text-sm sm:text-base font-light leading-relaxed">
-                {book.curatorNote || book.subtitle}
-              </p>
-            </div>
+                {book.subtitle && book.subtitle.trim() !== (book.curatorNote || '').trim() && (
+                  <p className="text-neutral-300 text-sm sm:text-base font-normal tracking-wide">
+                    {book.subtitle}
+                  </p>
+                )}
+
+                {book.curatorNote ? (
+                  <p className="text-neutral-400 text-sm sm:text-base font-light leading-relaxed">
+                    {book.curatorNote}
+                  </p>
+                ) : book.subtitle ? (
+                  <p className="text-neutral-400 text-sm sm:text-base font-light leading-relaxed">
+                    {book.subtitle}
+                  </p>
+                ) : null}
+              </div>
           </article>
         ))}
         </div>
