@@ -74,7 +74,7 @@ export default function PhotoBookDetail({ book, onBack }: PhotoBookDetailProps) 
                 </div>
                 {photo.subtitle ? (
                   <div>
-                    <span className="text-neutral-500 block uppercase text-[10px] tracking-tight">SERIES / SUBTITLE</span>
+                    <span className="text-neutral-500 block uppercase text-[10px] tracking-tight">SERIES</span>
                     <span className="text-neutral-300">{photo.subtitle}</span>
                   </div>
                 ) : (

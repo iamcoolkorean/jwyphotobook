@@ -366,7 +366,7 @@ export default function AdminConsole({
       const newMonograph: PhotoBook = {
         id: `monograph-${selectedFolder?.id || 'm'}-${Date.now()}`,
         title: folderName.toUpperCase(),
-        subtitle: `Curated Monograph`,
+        subtitle: new Date().getFullYear().toString(),
         edition: `EDITION ${String(books.length + 1).padStart(2, '0')}`,
         year: new Date().getFullYear().toString(),
         curatorNote: `Curated from Google Drive "${folderName}" on ${formatArchivalCatalogDate(
@@ -531,7 +531,7 @@ export default function AdminConsole({
         const newMonograph: PhotoBook = {
           id: `monograph-local-${Date.now()}`,
           title: `COLLECTION ${String(books.length + 1).padStart(2, '0')}`,
-          subtitle: 'Uploaded Monograph',
+          subtitle: new Date().getFullYear().toString(),
           edition: `EDITION ${String(books.length + 1).padStart(2, '0')}`,
           year: new Date().getFullYear().toString(),
           curatorNote: `Curated from ${photos.length} uploaded plates on ${formatArchivalCatalogDate(new Date())}.`,
@@ -1305,13 +1305,16 @@ export default function AdminConsole({
 
                   <div>
                     <label className="text-neutral-500 uppercase block mb-1">
-                      Monograph Subtitle (부제목)
+                      Date (날짜)
                     </label>
                     <input
                       type="text"
                       value={selectedBookForEdit.subtitle ?? ''}
-                      onChange={(e) => handleUpdateBookMetadata('subtitle', e.target.value)}
-                      placeholder="e.g., Jirisan Monograph Series / Spatial Inquiry"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleUpdateBookMetadata({ subtitle: val, year: val });
+                      }}
+                      placeholder="e.g., 2024 or 2024.10"
                       className="w-full bg-black border border-neutral-700 px-3 py-2 text-white focus:outline-hidden focus:border-white text-xs"
                     />
                   </div>
@@ -1461,7 +1464,7 @@ export default function AdminConsole({
                               </div>
                               <div>
                                 <label className="text-neutral-500 uppercase block mb-0.5 text-[10px]">
-                                  Plate Subtitle / Series (부제목)
+                                  Series (시리즈)
                                 </label>
                                 <input
                                   type="text"
