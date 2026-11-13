@@ -49,9 +49,9 @@ export default function IntroScreen({ onEnter, bannerPhoto }: IntroScreenProps) 
         </button>
       </main>
 
-      {/* Bottom Footer: Left logo deleted, right contains ORGANIZER: JWY · SEOUL, KOREA */}
+      {/* Bottom Footer: Left logo deleted, right contains ARCHIVE BY JWY · SEOUL, KOREA */}
       <footer className="absolute bottom-6 sm:bottom-10 left-6 sm:left-12 right-6 sm:right-12 flex justify-end items-center text-[10px] sm:text-xs font-light tracking-tight">
-        <span className="text-neutral-400 uppercase">ORGANIZER: JWY · SEOUL, KOREA</span>
+        <span className="text-neutral-400 uppercase">ARCHIVE BY JWY · SEOUL, KOREA</span>
       </footer>
     </div>
   );

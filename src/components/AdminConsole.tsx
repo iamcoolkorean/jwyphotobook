@@ -1181,10 +1181,10 @@ export default function AdminConsole({
                 Organize monograph exhibition sequence, reorder plates, and edit titles, curator notes, and technical metadata.
               </p>
 
-              {/* Monograph Collections Page Subtitle Description */}
+              {/* Monographs Page Subtitle Description */}
               <div className="p-4 border border-white/10 bg-neutral-950 space-y-2 font-mono text-xs">
                 <label className="text-neutral-400 uppercase tracking-widest block font-medium">
-                  Monograph Collections Page Introduction (Subtitle)
+                  Monographs Page Introduction (Subtitle)
                 </label>
                 <textarea
                   rows={2}

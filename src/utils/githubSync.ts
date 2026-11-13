@@ -54,7 +54,7 @@ export function buildPhotobooksConfigPayload(
   books: PhotoBook[],
   mainBannerPhotoId: string,
   updatedBy: string = 'JWY',
-  catalogDescription: string = 'A meditative sequence of black and white spatial inquiries.',
+  catalogDescription: string = '',
   informationConfig?: any
 ): string {
   const data = {

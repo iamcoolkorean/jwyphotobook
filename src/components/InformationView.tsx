@@ -16,27 +16,14 @@ export const DEFAULT_INFORMATION_CONFIG: InformationConfig = {
   sections: [
     {
       id: 'sec-01',
-      title: '01. Archival Mission',
+      title: '01. Origin',
       content:
-        'JWY PHOTO BOOK is a personal digital monograph archive founded in Seoul, Korea. Conceived as a tranquil gallery pavilion, the platform arranges visual inquiries into disciplined single-column sequences, allowing each photographic monograph to be absorbed without distraction.',
-    },
-    {
-      id: 'sec-02',
-      title: '02. The 1:1 Square White Passe-Partout',
-      content:
-        'Every artwork is mounted within an absolute square (1:1) white matting canvas. By positioning each negative in the dead center of a pure white field, the natural focal length and aspect ratio (4:3, 16:9, 3:4) remain untouched. The matting protects composition integrity and evokes physical museum prints.',
+        'JWY PHOTO BOOK is a personal photography archive founded in Seoul, Korea.',
     },
     {
       id: 'sec-03',
-      title: '03. Zero-Pill Aesthetic Discipline',
-      content:
-        'Form follows function. The interface deliberately excludes rounded borders, candy pills, and ornamental noise. All interaction points are defined by clean architectural lines, monospace indices, and pure high-contrast black and white geometry.',
-    },
-    {
-      id: 'sec-04',
-      title: '04. Cloud & Version Control Infrastructure',
-      content:
-        'Connecting Google Drive allows personal photography folders to transform directly into curated online monographs. All metadata and rendered square master plates can be versioned and committed to GitHub for permanent digital preservation.',
+      title: '02. Contact',
+      content: 'Email: yoojiwoo@korea.ac.kr',
     },
   ],
 };

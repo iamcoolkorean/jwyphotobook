@@ -11,9 +11,9 @@ export default function Footer() {
       data-testid="site-footer"
     >
       <div className="max-w-6xl mx-auto flex items-center justify-end">
-        {/* Right: Organizer & Location */}
+        {/* Right: Archive Credit & Location */}
         <div className="flex items-center gap-3 text-[11px] tracking-wider uppercase text-neutral-400">
-          <span className="text-neutral-300">ORGANIZER: JWY</span>
+          <span className="text-neutral-300">ARCHIVE BY JWY</span>
           <span className="text-neutral-600">·</span>
           <span>SEOUL, KOREA</span>
         </div>

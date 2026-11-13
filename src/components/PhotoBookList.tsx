@@ -29,11 +29,13 @@ export default function PhotoBookList({
       {/* Editorial Catalog Introduction */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 mb-20 sm:mb-28 text-left">
         <h2 className="text-3xl sm:text-4xl font-light tracking-tight text-white">
-          Monograph Collections
+          Monographs
         </h2>
-        <p className="mt-4 text-neutral-400 text-sm sm:text-base leading-relaxed font-light text-left">
-          {catalogDescription}
-        </p>
+        {catalogDescription && catalogDescription.trim() !== '' && (
+          <p className="mt-4 text-neutral-400 text-sm sm:text-base leading-relaxed font-light text-left">
+            {catalogDescription}
+          </p>
+        )}
       </div>
 
       {/* Single Column Series (1열 세로 배열) */}

@@ -107,11 +107,20 @@ export default function App() {
   const [catalogDescription, setCatalogDescription] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('jwy_catalog_desc');
-      if (saved) return saved;
+      if (saved) {
+        const trimmed = saved.trim();
+        if (
+          trimmed.startsWith('A meditative sequence of black and white spatial inquiries')
+        ) {
+          localStorage.removeItem('jwy_catalog_desc');
+          return '';
+        }
+        return saved;
+      }
     } catch (e) {
       console.warn('Failed to load cached catalog desc:', e);
     }
-    return 'A meditative sequence of black and white spatial inquiries. Each plate is mounted within a pristine 1:1 white passe-partout matting, honouring the native proportion of the negative.';
+    return '';
   });
 
   // Information page customizable content
@@ -120,7 +129,16 @@ export default function App() {
       const saved = localStorage.getItem('jwy_info_config');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.heading && Array.isArray(parsed?.sections)) return parsed;
+        if (parsed?.heading && Array.isArray(parsed?.sections)) {
+          const hasLegacyPlaceholder = parsed.sections.some(
+            (s: any) => s?.title === '01. Archival Mission'
+          );
+          if (hasLegacyPlaceholder) {
+            localStorage.removeItem('jwy_info_config');
+            return DEFAULT_INFORMATION_CONFIG;
+          }
+          return parsed;
+        }
       }
     } catch (e) {
       console.warn('Failed to load cached info config:', e);
