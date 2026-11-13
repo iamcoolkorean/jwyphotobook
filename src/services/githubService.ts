@@ -241,21 +241,34 @@ export async function fetchRemotePhotobooksConfig(
   branch: string = 'main',
   token?: string
 ): Promise<ParsedRemoteConfig | null> {
-  if (!owner || !repo) return null;
+  const nonce = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-  // 1. Try public raw content (works without token for public repos and avoids GitHub API rate limits)
+  // 1. Try public raw.githubusercontent.com (IMPORTANT: no custom headers so browser sends a CORS Simple GET without OPTIONS preflight)
+  if (owner && repo) {
+    try {
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/photobooks.json?_t=${nonce}`;
+      const rawRes = await fetch(rawUrl, {
+        cache: 'no-store',
+      });
+      if (rawRes.ok) {
+        const json = await rawRes.json();
+        const parsed = parseRemotePhotobooksPayload(json);
+        if (parsed) return parsed;
+      }
+    } catch {
+      // Continue to fallback
+    }
+  }
+
+  // 2. Fallback to same-origin ./data/photobooks.json (works on local dev server & static hosting)
   try {
-    const nonce = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/photobooks.json?_t=${nonce}`;
-    const rawRes = await fetch(rawUrl, {
+    const base = (import.meta as any).env?.BASE_URL || './';
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    const localRes = await fetch(`${cleanBase}data/photobooks.json?_t=${nonce}`, {
       cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-      },
     });
-    if (rawRes.ok) {
-      const json = await rawRes.json();
+    if (localRes.ok) {
+      const json = await localRes.json();
       const parsed = parseRemotePhotobooksPayload(json);
       if (parsed) return parsed;
     }
@@ -263,30 +276,38 @@ export async function fetchRemotePhotobooksConfig(
     // Continue to GitHub API fallback
   }
 
-  // 2. Fallback to GitHub API (supports private repos if token is provided, always fresh from git tree)
-  try {
-    const headers: Record<string, string> = {
-      Accept: 'application/vnd.github+json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      Pragma: 'no-cache',
-    };
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/photobooks.json?ref=${branch}&_t=${Date.now()}`;
-    const apiRes = await fetch(apiUrl, { headers, cache: 'no-store' });
-    if (apiRes.ok) {
-      const data = await apiRes.json();
-      if (data && data.content) {
-        // Base64 decoded utf-8 content
-        const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-        const parsed = parseRemotePhotobooksPayload(decoded);
-        if (parsed) return parsed;
+  // 3. Fallback to GitHub API (supports private repos if token is provided)
+  if (owner && repo) {
+    try {
+      const headers: Record<string, string> = {
+        Accept: 'application/vnd.github+json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
+
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/photobooks.json?ref=${branch}&_t=${nonce}`;
+      const apiRes = await fetch(apiUrl, { headers, cache: 'no-store' });
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        if (data && data.content) {
+          // Base64 decoded utf-8 content (for files <= 1MB)
+          const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+          const parsed = parseRemotePhotobooksPayload(decoded);
+          if (parsed) return parsed;
+        } else if (data && data.download_url) {
+          // For files > 1MB, GitHub omits inline content and provides download_url
+          const dlRes = await fetch(`${data.download_url}?_t=${nonce}`, { cache: 'no-store' });
+          if (dlRes.ok) {
+            const json = await dlRes.json();
+            const parsed = parseRemotePhotobooksPayload(json);
+            if (parsed) return parsed;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('GitHub API fetch failed:', err);
     }
-  } catch (err) {
-    console.warn('GitHub API fetch failed:', err);
   }
 
   return null;
