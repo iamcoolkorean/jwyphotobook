@@ -383,7 +383,7 @@ export default function App() {
 
   // Sync document title and social share card representative image with active main banner
   useEffect(() => {
-    document.title = 'Photo Book';
+    document.title = 'Photobook';
     if (mainBannerPhoto?.imageUrl && typeof document !== 'undefined') {
       const ogImg = document.querySelector('meta[property="og:image"]');
       if (ogImg) ogImg.setAttribute('content', mainBannerPhoto.imageUrl);
