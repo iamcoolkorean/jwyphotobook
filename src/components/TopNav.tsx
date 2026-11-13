@@ -35,7 +35,7 @@ export default function TopNav({
           title="Return to Master Intro Photograph"
           className="text-left bg-transparent border-0 p-0 text-white font-sans font-light text-xs sm:text-base tracking-tight uppercase hover:text-neutral-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
         >
-          JWY PHOTO BOOK
+          JWY PHOTOBOOK
         </button>
 
         {/* Center Zone: Monographs and Information with smaller size and matched font */}
