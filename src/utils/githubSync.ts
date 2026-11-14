@@ -25,6 +25,68 @@ export function parseGitHubRepoString(input: string, defaultBranch: string = 'ma
 }
 
 /**
+ * Converts a monograph title into a clean URL-safe lowercase slug (a-z, 0-9, hyphens).
+ * Example: "#001 Nogodan" -> "001-nogodan"
+ */
+export function slugifyMonographTitle(title: string): string {
+  return (title || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Sanitizes live user input for the URL Slug (ID) field.
+ * Converts spaces and special characters into hyphens while allowing a single trailing hyphen during typing.
+ */
+export function sanitizeMonographSlugInput(raw: string): string {
+  return (raw || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+/, '');
+}
+
+/**
+ * Generates a unique monograph slug ID from a title, appending -2, -3, etc. on collision,
+ * or monograph-1, monograph-2, etc. when the title has no ASCII alphanumeric characters.
+ */
+export function generateUniqueMonographSlug(
+  title: string,
+  existingBooks: ReadonlyArray<Pick<PhotoBook, 'id'>>,
+  excludeBookId?: string
+): string {
+  const existingIds = new Set(
+    existingBooks
+      .filter((b) => b.id !== excludeBookId)
+      .map((b) => b.id)
+  );
+
+  const baseSlug = slugifyMonographTitle(title);
+  if (!baseSlug) {
+    let seq = 1;
+    while (existingIds.has(`monograph-${seq}`)) {
+      seq += 1;
+    }
+    return `monograph-${seq}`;
+  }
+
+  if (!existingIds.has(baseSlug)) {
+    return baseSlug;
+  }
+
+  let seq = 2;
+  while (existingIds.has(`${baseSlug}-${seq}`)) {
+    seq += 1;
+  }
+  return `${baseSlug}-${seq}`;
+}
+
+/**
  * Automatically detects the GitHub repository (owner/repo) based on GitHub Pages URL,
  * environment variables, or fallback to the correct repository name.
  */

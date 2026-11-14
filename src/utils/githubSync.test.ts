@@ -6,6 +6,9 @@ import {
   computeCanvasDrawSpecs,
   parseRemotePhotobooksPayload,
   detectDefaultGitHubRepo,
+  slugifyMonographTitle,
+  sanitizeMonographSlugInput,
+  generateUniqueMonographSlug,
 } from './githubSync.ts';
 import { CURATED_PHOTOBOOKS, MASTER_INTRO_PHOTO } from '../data/curatedPhotobooks.ts';
 
@@ -90,5 +93,24 @@ test('parseRemotePhotobooksPayload: handles invalid JSON gracefully', () => {
 test('detectDefaultGitHubRepo: defaults to jwygallery/photo in non-browser or fallback env', () => {
   const repo = detectDefaultGitHubRepo();
   assert.equal(repo, 'jwygallery/photo');
+});
+
+test('slugifyMonographTitle: converts titles into clean URL slugs', () => {
+  assert.equal(slugifyMonographTitle('#001 Nogodan'), '001-nogodan');
+  assert.equal(slugifyMonographTitle('  Seoul Archive 2026!  '), 'seoul-archive-2026');
+  assert.equal(slugifyMonographTitle('노고단 사진집'), '');
+});
+
+test('sanitizeMonographSlugInput: cleans spaces and special characters while typing', () => {
+  assert.equal(sanitizeMonographSlugInput('#001 Nogodan '), '001-nogodan-');
+  assert.equal(sanitizeMonographSlugInput('My   Photo__Book'), 'my-photo-book');
+});
+
+test('generateUniqueMonographSlug: avoids duplicates and handles empty slugs', () => {
+  const existing = [{ id: '001-nogodan' }, { id: '001-nogodan-2' }, { id: 'monograph-1' }];
+  assert.equal(generateUniqueMonographSlug('#002 Hallasan', existing), '002-hallasan');
+  assert.equal(generateUniqueMonographSlug('#001 Nogodan', existing), '001-nogodan-3');
+  assert.equal(generateUniqueMonographSlug('노고단', existing), 'monograph-2');
+  assert.equal(generateUniqueMonographSlug('#001 Nogodan', existing, '001-nogodan'), '001-nogodan');
 });
 

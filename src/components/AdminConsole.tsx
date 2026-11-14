@@ -22,6 +22,8 @@ import {
   buildPhotobooksConfigPayload,
   parseGitHubRepoString,
   detectDefaultGitHubRepo,
+  generateUniqueMonographSlug,
+  sanitizeMonographSlugInput,
 } from '../utils/githubSync.ts';
 import {
   formatArchivalCatalogDate,
@@ -117,6 +119,23 @@ export default function AdminConsole({
 
   // Caption Editing state
   const [selectedBookForEdit, setSelectedBookForEdit] = useState<PhotoBook>(books[0] || null);
+  const [slugInput, setSlugInput] = useState<string>(books[0]?.id || '');
+  const [slugError, setSlugError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedBookForEdit) {
+      setSlugInput('');
+      setSlugError(null);
+      return;
+    }
+    setSlugInput((prev) => {
+      if (prev.replace(/-+$/g, '') === selectedBookForEdit.id) {
+        return prev;
+      }
+      return selectedBookForEdit.id;
+    });
+    setSlugError(null);
+  }, [selectedBookForEdit?.id]);
 
   // Confirmation modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -362,10 +381,11 @@ export default function AdminConsole({
     try {
       const photos = await convertDriveFilesToPhotoItems(filesToImport);
       const folderName = selectedFolder?.name || 'CURATED';
+      const monographTitle = folderName.toUpperCase();
 
       const newMonograph: PhotoBook = {
-        id: `monograph-${selectedFolder?.id || 'm'}-${Date.now()}`,
-        title: folderName.toUpperCase(),
+        id: generateUniqueMonographSlug(monographTitle, books),
+        title: monographTitle,
         subtitle: new Date().getFullYear().toString(),
         edition: `EDITION ${String(books.length + 1).padStart(2, '0')}`,
         year: new Date().getFullYear().toString(),
@@ -528,9 +548,10 @@ export default function AdminConsole({
       }
 
       if (photos.length > 0) {
+        const monographTitle = `COLLECTION ${String(books.length + 1).padStart(2, '0')}`;
         const newMonograph: PhotoBook = {
-          id: `monograph-local-${Date.now()}`,
-          title: `COLLECTION ${String(books.length + 1).padStart(2, '0')}`,
+          id: generateUniqueMonographSlug(monographTitle, books),
+          title: monographTitle,
           subtitle: new Date().getFullYear().toString(),
           edition: `EDITION ${String(books.length + 1).padStart(2, '0')}`,
           year: new Date().getFullYear().toString(),
@@ -682,12 +703,78 @@ export default function AdminConsole({
     val?: string
   ) => {
     if (!selectedBookForEdit) return;
+    const previousId = selectedBookForEdit.id;
     const patch: Partial<PhotoBook> =
       typeof updates === 'string' ? { [updates]: val } : updates;
     const updatedBook = { ...selectedBookForEdit, ...patch };
     setSelectedBookForEdit(updatedBook);
-    const updatedList = books.map((b) => (b.id === updatedBook.id ? updatedBook : b));
+    const updatedList = books.map((b) => (b.id === previousId ? updatedBook : b));
     onUpdateBooks(updatedList);
+  };
+
+  // Update URL Slug (ID) with sanitization and duplicate check
+  const handleSlugInputChange = (rawValue: string) => {
+    if (!selectedBookForEdit) return;
+    const sanitized = sanitizeMonographSlugInput(rawValue);
+    setSlugInput(sanitized);
+
+    const finalized = sanitized.replace(/-+$/g, '');
+    if (!finalized) {
+      setSlugError('URL Slug cannot be empty (use lowercase letters, numbers, or hyphens).');
+      return;
+    }
+
+    const isDuplicate = books.some(
+      (b) => b.id !== selectedBookForEdit.id && b.id === finalized
+    );
+    if (isDuplicate) {
+      setSlugError(`Duplicate slug: "${finalized}" is already used by another monograph.`);
+      return;
+    }
+
+    setSlugError(null);
+    if (finalized !== selectedBookForEdit.id) {
+      const previousId = selectedBookForEdit.id;
+      handleUpdateBookMetadata('id', finalized);
+      if (targetBookForAppend === previousId) {
+        setTargetBookForAppend(finalized);
+      }
+    }
+  };
+
+  const handleSlugInputBlur = () => {
+    if (!selectedBookForEdit) return;
+    const finalized = slugInput.replace(/-+$/g, '');
+    if (!finalized) {
+      setSlugInput(selectedBookForEdit.id);
+      setSlugError(null);
+      return;
+    }
+    const isDuplicate = books.some(
+      (b) => b.id !== selectedBookForEdit.id && b.id === finalized
+    );
+    if (!isDuplicate) {
+      setSlugInput(finalized);
+      setSlugError(null);
+    }
+  };
+
+  const handleAutoGenerateSlug = () => {
+    if (!selectedBookForEdit) return;
+    const nextSlug = generateUniqueMonographSlug(
+      selectedBookForEdit.title,
+      books,
+      selectedBookForEdit.id
+    );
+    const previousId = selectedBookForEdit.id;
+    setSlugInput(nextSlug);
+    setSlugError(null);
+    if (nextSlug !== previousId) {
+      handleUpdateBookMetadata('id', nextSlug);
+      if (targetBookForAppend === previousId) {
+        setTargetBookForAppend(nextSlug);
+      }
+    }
   };
 
   const handleUpdatePhotoMetadata = (photoId: string, field: keyof PhotoItem, val: string) => {
@@ -1301,6 +1388,38 @@ export default function AdminConsole({
                       onChange={(e) => handleUpdateBookMetadata('title', e.target.value)}
                       className="w-full bg-black border border-neutral-700 px-3 py-2 text-white focus:outline-hidden focus:border-white text-xs"
                     />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-neutral-500 uppercase">URL Slug (ID)</label>
+                      <button
+                        type="button"
+                        onClick={handleAutoGenerateSlug}
+                        title="Generate URL Slug from Monograph Title"
+                        className="text-[10px] font-mono uppercase text-neutral-400 hover:text-white bg-transparent border-0 p-0 cursor-pointer transition-colors"
+                      >
+                        [ Auto from Title ]
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={slugInput}
+                      onChange={(e) => handleSlugInputChange(e.target.value)}
+                      onBlur={handleSlugInputBlur}
+                      placeholder="e.g., 001-nogodan"
+                      className={`w-full bg-black border px-3 py-2 text-white font-mono focus:outline-hidden text-xs ${
+                        slugError ? 'border-red-500 focus:border-red-400' : 'border-neutral-700 focus:border-white'
+                      }`}
+                    />
+                    <span className="mt-1 block font-mono text-[10px] text-neutral-500 truncate">
+                      #/book/{selectedBookForEdit.id}
+                    </span>
+                    {slugError && (
+                      <p className="mt-1 text-[10px] font-mono text-red-400 leading-snug">
+                        {slugError}
+                      </p>
+                    )}
                   </div>
 
                   <div>
